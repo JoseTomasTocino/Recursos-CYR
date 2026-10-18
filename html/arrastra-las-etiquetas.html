@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Completa el HTML</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#233247;font:17px/1.5 system-ui,Segoe UI,sans-serif}main{max-width:1240px;margin:auto;padding:26px}h1{color:#093c71;font-size:30px;margin:0 0 8px}header p{margin:0 0 22px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:22px;align-items:start}.sheet,.tools{background:#fff;border:1px solid #d7e3ef;border-radius:12px;padding:22px}.sheet{overflow-x:auto}.tools{position:sticky;top:16px}h2{font-size:18px;margin:0 0 12px;color:#093c71}.hint{font-size:14px;color:#526171;margin:10px 0}.code{font:18px/1.5 Consolas,'Courier New',monospace;min-width:620px}.line{display:flex;align-items:center;gap:8px;min-height:46px;padding-left:calc(var(--indent)*28px);white-space:nowrap}.copy{color:#865027}.slot{display:inline-flex;align-items:center;justify-content:center;min-width:100px;height:37px;padding:0 7px;border:2px dashed #a0b4cc;border-radius:6px;background:#f6f9fd;color:#64748b;font:inherit;cursor:pointer;vertical-align:middle}.slot.filled{border-style:solid;background:#eef4fc;color:#093c71}.slot.correct{border-color:#238452;background:#edf9f1;color:#185e3a}.slot.wrong{border-color:#b34438;background:#fff1ef;color:#8c3026}.slot.empty{border-color:#b77917;background:#fff9e9}.mark{font:700 14px system-ui;margin-left:7px}.slot.over,#bank.over{outline:3px solid #e4a837;outline-offset:2px}.pool{display:flex;flex-wrap:wrap;gap:9px;min-height:100px;padding:8px 0}.tag{font:18px Consolas,'Courier New',monospace;padding:8px 10px;border:1px solid #bccfe5;border-radius:6px;color:#093c71;background:#eff5fc;cursor:grab;box-shadow:0 2px 2px #093c7108}.tag.selected{outline:3px solid #d59625;background:#fff3ce}.tag:active{cursor:grabbing}button:focus-visible{outline:3px solid #c68b1d;outline-offset:3px}.actions{display:grid;gap:9px;margin-top:15px}.action{font:600 16px system-ui;border:1px solid #b9cce1;border-radius:7px;padding:12px;background:#fff;color:#093c71;cursor:pointer}.action.primary{background:#093c71;border-color:#093c71;color:#fff}.action:disabled{opacity:.45;cursor:default}#feedback{margin:16px 0 0;font-weight:600}#selection{min-height:44px}footer{font-size:14px;color:#526171;margin-top:18px}@media(max-width:940px){.layout{grid-template-columns:1fr}.tools{position:static;grid-row:1}.pool{min-height:0}.actions{grid-template-columns:repeat(3,1fr)}main{padding:16px}.sheet,.tools{padding:16px}}@media(max-width:550px){.actions{grid-template-columns:1fr}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Completa el HTML</h1>
+<p>Arrastra cada etiqueta hasta su hueco. Fíjate en los textos y en cómo se colocan las líneas.</p>
+</header>
+<div class="layout">
+<section class="sheet" aria-labelledby="page-heading">
+<h2 id="page-heading">La página del club de robótica</h2>
+<div id="code" class="code"></div>
+</section>
+<aside class="tools" aria-labelledby="tags-heading">
+<h2 id="tags-heading">Etiquetas disponibles</h2>
+<div id="bank" class="pool" aria-label="Etiquetas disponibles. Arrastra aquí una etiqueta para devolverla."></div>
+<p class="hint">También puedes hacer clic en una etiqueta y después en un hueco. Para quitar una etiqueta, haz clic en el hueco ocupado sin tener otra seleccionada.</p>
+<p id="selection" class="hint" aria-live="polite">Elige una etiqueta para empezar.</p>
+<div class="actions">
+<button id="check" class="action primary" type="button">Comprobar</button>
+<button id="retry" class="action" type="button" disabled>Reintentar los fallos</button>
+<button id="reset" class="action" type="button">Empezar de nuevo</button>
+</div>
+<p id="feedback" role="status" aria-live="polite"></p>
+</aside>
+</div>
+<footer>Práctica de HTML · Puedes intentarlo las veces que necesites.</footer>
+</main>
+<script>
+'use strict';
+// Cada etiqueta repetida es intercambiable con otra del mismo texto.
+const rows = [
+ {indent:0,open:'<html>'},
+ {indent:1,open:'<head>'},
+ {indent:2,open:'<title>',text:'Mi club',close:'</title>'},
+ {indent:1,close:'</head>'},
+ {indent:1,open:'<body>'},
+ {indent:2,open:'<h1>',text:'Club de robótica',close:'</h1>'},
+ {indent:2,open:'<p>',text:'Nos gusta construir robots.',close:'</p>'},
+ {indent:2,open:'<h2>',text:'Nuestros proyectos',close:'</h2>'},
+ {indent:2,open:'<p>',text:'Creamos un robot que sigue una línea.',close:'</p>'},
+ {indent:2,open:'<h2>',text:'El equipo',close:'</h2>'},
+ {indent:2,open:'<p>',text:'Trabajamos juntos y compartimos ideas.',close:'</p>'},
+ {indent:1,close:'</body>'},
+ {indent:0,close:'</html>'}
+];
+const slots=[], tags=[];
+const code=document.getElementById('code'), bank=document.getElementById('bank');
+const feedback=document.getElementById('feedback'), selection=document.getElementById('selection');
+const retry=document.getElementById('retry');
+let selected=null, checked=false, dragging=null;
+rows.forEach((row,lineIndex)=>{
+ const line=document.createElement('div'); line.className='line';line.style.setProperty('--indent',row.indent);
+ function addSlot(expected,position){
+  const id=slots.length, button=document.createElement('button');
+  button.type='button';button.className='slot';button.dataset.slot=id;
+  const label=`Línea ${lineIndex+1}, ${position}${row.text?' de «'+row.text+'»':''}`;
+  slots.push({expected,tag:null,button,label});tags.push({id,text:expected});
+  button.addEventListener('click',()=>{
+   if(selected!==null){place(selected,id);selected=null;}
+   else if(slots[id].tag!==null){slots[id].tag=null;changed();}
+   render();
+  });
+  button.addEventListener('dragstart',e=>{
+   if(slots[id].tag===null){e.preventDefault();return;}
+   startDrag(e,slots[id].tag);
+  });
+  button.addEventListener('dragend',endDrag);
+  button.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';button.classList.add('over');});
+  button.addEventListener('dragleave',()=>button.classList.remove('over'));
+  button.addEventListener('drop',e=>{
+   e.preventDefault();button.classList.remove('over');
+   const tag=readDrag(e);if(tag===null)return;place(tag,id);selected=null;render();
+  });
+  line.append(button);
+ }
+ if(row.open)addSlot(row.open,'hueco de apertura');
+ if(row.text){const text=document.createElement('span');text.className='copy';text.textContent=row.text;line.append(text);}
+ if(row.close)addSlot(row.close,'hueco de cierre');
+ code.append(line);
+});
+function startDrag(e,id){dragging=id;e.dataTransfer.setData('text/plain',String(id));e.dataTransfer.effectAllowed='move';}
+function readDrag(e){const value=e.dataTransfer.getData('text/plain');if(!/^\d+$/.test(value))return null;const id=Number(value);return tags[id]&&dragging===id?id:null;}
+function endDrag(){dragging=null;document.querySelectorAll('.over').forEach(el=>el.classList.remove('over'));}
+function changed(){checked=false;feedback.textContent='';retry.disabled=true;}
+function place(id,target){
+ if(!tags[id])return;
+ const source=slots.findIndex(s=>s.tag===id);
+ if(source===target)return;
+ const displaced=slots[target].tag;
+ if(source!==-1)slots[source].tag=displaced;
+ slots[target].tag=id;changed();
+}
+function shuffle(array){for(let i=array.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[array[i],array[j]]=[array[j],array[i]];}return array;}
+let order=shuffle(tags.map(t=>t.id));
+function render(){
+ const used=new Set(slots.filter(s=>s.tag!==null).map(s=>s.tag));
+ bank.replaceChildren();
+ order.filter(id=>!used.has(id)).forEach(id=>{
+  const button=document.createElement('button');button.type='button';button.className='tag'+(selected===id?' selected':'');
+  button.textContent=tags[id].text;button.draggable=true;button.setAttribute('aria-pressed',String(selected===id));
+  button.addEventListener('click',()=>{selected=selected===id?null:id;render();});
+  button.addEventListener('dragstart',e=>startDrag(e,id));button.addEventListener('dragend',endDrag);bank.append(button);
+ });
+ if(used.size===tags.length){const p=document.createElement('p');p.className='hint';p.textContent='Ya has colocado todas las etiquetas.';bank.append(p);}
+ slots.forEach(s=>{
+  const b=s.button, filled=s.tag!==null;b.className='slot'+(filled?' filled':'');b.draggable=filled;
+  b.textContent=filled?tags[s.tag].text:'…';
+  let status='';
+  if(checked){
+   const correct=filled&&tags[s.tag].text===s.expected;
+   b.classList.add(!filled?'empty':correct?'correct':'wrong');
+   status=!filled?'Sin completar':correct?'Correcto':'Revisar';
+   const mark=document.createElement('span');mark.className='mark';mark.textContent=!filled?'?':correct?'✓':'✕';mark.setAttribute('aria-hidden','true');b.append(mark);
+  }
+  b.setAttribute('aria-label',s.label+': '+(filled?tags[s.tag].text:'vacío')+(status?'. '+status:''));
+ });
+ selection.textContent=selected===null?'Elige una etiqueta y colócala en un hueco.':'Seleccionada: '+tags[selected].text+'. Haz clic en un hueco.';
+}
+bank.addEventListener('dragover',e=>{e.preventDefault();bank.classList.add('over');});
+bank.addEventListener('dragleave',()=>bank.classList.remove('over'));
+bank.addEventListener('drop',e=>{
+ e.preventDefault();bank.classList.remove('over');const id=readDrag(e);if(id===null)return;
+ const source=slots.find(s=>s.tag===id);if(source){source.tag=null;changed();}selected=null;render();
+});
+document.getElementById('check').addEventListener('click',()=>{
+ selected=null;checked=true;
+ const correct=slots.filter(s=>s.tag!==null&&tags[s.tag].text===s.expected).length;
+ const empty=slots.filter(s=>s.tag===null).length;
+ const wrong=slots.length-correct-empty;
+ feedback.textContent=correct===slots.length?'¡Todo correcto! Has completado la estructura de la página.':`${correct} de ${slots.length} correctas. ${wrong} por revisar y ${empty} sin colocar. ✓ Correcta · ✕ Revisa · ? Falta una etiqueta.`;
+ retry.disabled=correct===slots.length;render();
+});
+retry.addEventListener('click',()=>{
+ slots.forEach(s=>{if(s.tag!==null&&tags[s.tag].text!==s.expected)s.tag=null;});
+ selected=null;changed();render();feedback.textContent='Las correctas se quedan en su sitio. Coloca las que faltan y vuelve a comprobar.';
+});
+document.getElementById('reset').addEventListener('click',()=>{
+ if(slots.some(s=>s.tag!==null)&&!window.confirm('¿Quieres quitar todas las etiquetas y empezar de nuevo?'))return;
+ slots.forEach(s=>s.tag=null);selected=null;order=shuffle(tags.map(t=>t.id));changed();render();
+});
+render();
+</script>
+</body>
+</html>
